@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: fct_apple_financials
+    columns:
+      - name: submission_number
+        tests:
+          - not_null
+      - name: period_end_date
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - submission_number
+            - period_end_date
