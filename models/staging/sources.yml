@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: apple
+    database: "finance-pipeline-demo"
+    schema: "finance_project"
+    tables:
+      - name: apple_financials_raw
