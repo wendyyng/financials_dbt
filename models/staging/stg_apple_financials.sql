@@ -57,13 +57,12 @@ filtered AS (
         (form = '10-Q' AND fiscal_period_focus IN ('Q1', 'Q2', 'Q3', 'Q4'))
 ),
 
--- Prefer 10-Q over 10-K for the same period
 deduped AS (
     SELECT *
     FROM (
         SELECT *,
                ROW_NUMBER() OVER (
-                   PARTITION BY period_end_date  -- Only partition by date
+                   PARTITION BY period_end_date, measure_tag  -- Keep one row per period AND metric
                    ORDER BY 
                        CASE WHEN form = '10-Q' THEN 1 ELSE 2 END,
                        date_accepted DESC
