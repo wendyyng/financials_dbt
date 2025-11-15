@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: int_financial_ratios
+    description: "Apple financial metrics with calculated ratios, growth rates, and trends"
+    columns:
+      - name: period_end_date
+        description: "End date of the reporting period"
+        tests:
+          - not_null
+          - unique
+      - name: revenue
+        description: "Total revenue for the period"
+      - name: gross_margin_pct
+        description: "Gross profit margin percentage"
+      - name: net_margin_pct
+        description: "Net profit margin percentage"
+      - name: revenue_growth_pct
+        description: "Sequential period-over-period revenue growth %"
+      - name: revenue_yoy_growth_pct
+        description: "Year-over-year revenue growth %"
+      - name: eps_growth_pct
+        description: "Sequential EPS growth %"
