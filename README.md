@@ -199,7 +199,7 @@ revenue_yoy_growth_pct = ((当期売上 - 4期前売上) / 4期前売上) × 100
 
 1. **リポジトリのクローン**
 ```bash
-git clone https://github.com/yourusername/apple-financial-analysis.git
+git clone https://github.com/wendyyng/financials_dbt.git
 cd apple-financial-analysis
 ```
 
@@ -293,7 +293,7 @@ ORDER BY period_end_date DESC;
 
 ---
 
-## 🎓 主な学びと課題
+##  主な学びと課題
 
 ### 解決した課題
 1. **重複する期間:** SEC提出書類には比較用の過去データが含まれるため、スマートな重複除去が必要
@@ -323,7 +323,7 @@ ORDER BY period_end_date DESC;
 ##  関連リンク
 
 - **ダッシュボード:** [Looker Studioダッシュボードを見る](https://lookerstudio.google.com/reporting/067044c7-111f-4560-97ff-6bb1bedee721)
-- **dbtドキュメント:** [ドキュメントを見る](#)
+- **dbtドキュメント:** [ドキュメントを見る](https://wendyyng.github.io/financials_dbt/#!/overview)
 - **ソースデータ:** [SEC EDGARデータベース](https://www.sec.gov/edgar)
 
 ---
