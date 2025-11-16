@@ -200,7 +200,7 @@ revenue_yoy_growth_pct = ((当期売上 - 4期前売上) / 4期前売上) × 100
 1. **リポジトリのクローン**
 ```bash
 git clone https://github.com/wendyyng/financials_dbt.git
-cd apple-financial-analysis
+cd financials_dbt
 ```
 
 2. **dbtパッケージのインストール**
@@ -315,7 +315,6 @@ ORDER BY period_end_date DESC;
 -  **16四半期**のクリーンで分析可能な財務データ
 -  **100%のテスト合格率**（5つのデータ品質テスト）
 -  重複除去ロジック後の**重複レコードゼロ**
--  **2秒未満**のダッシュボードクエリパフォーマンス
 -  dbtによる**自動化されたデータ系統**ドキュメント
 
 ---
