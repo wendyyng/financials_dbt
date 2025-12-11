@@ -200,7 +200,7 @@ revenue_yoy_growth_pct = ((current_revenue - revenue_4q_ago) / revenue_4q_ago) *
 
 ### Installation
 
-Clone the repository:
+1. **Clone the repository**
 ```bash
 git clone https://github.com/wendyyng/financials_dbt.git
 cd financials_dbt
