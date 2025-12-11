@@ -1,6 +1,6 @@
-#  Apple Inc.財務分析パイプライン
+#  Apple Inc. Financial Data Pipeline
 
-モダンデータスタックツールを使用してApple社のSEC財務報告書を分析するエンドツーエンドのデータパイプライン。
+An end-to-end data pipeline that extracts, transforms, and visualizes Apple’s SEC financial filing data using modern data stack tools.
 
 [![dbt](https://img.shields.io/badge/dbt-FF694B?style=flat&logo=dbt&logoColor=white)](https://www.getdbt.com/)
 [![BigQuery](https://img.shields.io/badge/BigQuery-4285F4?style=flat&logo=google-cloud&logoColor=white)](https://cloud.google.com/bigquery)
@@ -8,88 +8,87 @@
 
 ---
 
-##  概要
+## Overview
 
-このプロジェクトは、Apple社のSEC（米国証券取引委員会）提出書類（10-Q・10-K報告書）から財務データを抽出・変換・可視化する本番環境対応のデータパイプラインです。3層アーキテクチャによるモダンなデータエンジニアリングのベストプラクティスを実装しています。
-
-**データ対象期間:** 2013-2015年および2018-2020年の16四半期
+This project implements a production-style data pipeline to clean, model, and analyze Apple’s SEC financial data. It follows modern data engineering best practices, including a three-layer warehouse architecture, automated transformations, data quality testing, and dashboard visualization.
 
 ---
 
-##  使用技術
+## Tech Stack
 
-| コンポーネント         | 技術 |
-|---------------        |------|
-| **データウェアハウス** | Google BigQuery |
-| **データ変換**        | dbt Cloud |
-| **可視化**            | Looker Studio |
-| **バージョン管理**     | Git/GitHub |
-| **テスト**            | dbt tests |
-| **データソース**       | SEC EDGAR提出書類 |
+| Component          | Technology        |
+|-------------------|-------------------|
+| Data Warehouse     | Google BigQuery   |
+| Transformation     | dbt Cloud         |
+| Visualization      | Looker Studio     |
+| Version Control    | Git / GitHub      |
+| Testing            | dbt tests         |
+| Data Source        | SEC EDGAR dataset |
 
 ---
 
-##  アーキテクチャ
+##  Architecture
 ```
-SEC提出書類（BigQuery公開データセット）
+SEC filings (BigQuery public dataset)
     ↓
- ステージング層：データクリーニング・標準化
+Staging Layer: cleaning & standardization
     ↓
- マート層：ビジネスロジック・ピボット処理
+Marts Layer: business logic & pivoting
     ↓
- 分析層：KPI計算
+Analytics Layer: KPI calculations
     ↓
- Looker Studio：インタラクティブダッシュボード
+Looker Studio Dashboard
 ```
 
-### データフロー概要
+## Data Flow Summary
 
-| レイヤー | 入力 | 出力 | 目的 |
-|---------|------|------|------|
-| **生データ** | 254行（縦持ち形式） | - | SEC提出データ |
-| **ステージング** | 254行 | 160行 | クリーニング、重複除去 |
-| **マート** | 160行 | 16行 | ピボット済み指標 |
-| **分析** | 16行 | 16行 + KPI | 比率計算済み |
+| Layer        | Input Rows | Output Rows | Purpose                             |
+|--------------|-------------|-------------|-------------------------------------|
+| Raw Data     | 254         | –           | Original SEC financial data         |
+| Staging      | 254         | 160         | Cleaning, filtering, deduplication  |
+| Marts        | 160         | 16          | Pivoted financial metrics           |
+| Analytics    | 16          | 16 + KPIs   | KPI and ratio calculations          |
 
 ---
 
-##  プロジェクト構造
+##  Project Structure
 ```
 financials_dbt/
 ├── models/
 │   ├── staging/
-│   │   ├── stg_apple_financials.sql      # データクリーニング・重複除去
-│   │   └── sources.yml                    # ソース定義
+│   │   ├── stg_apple_financials.sql      
+│   │   └── sources.yml                    
 │   ├── marts/
 │   │   └── facts/
-│   │       ├── fct_apple_financials.sql   # ピボット済み財務指標
-│   │       └── schema.yml                 # テスト・ドキュメント
+│   │       ├── fct_apple_financials.sql   
+│   │       └── schema.yml                 
 │   └── intermediate/
-│       ├── int_financial_ratios.sql       # KPI計算
-│       └── schema.yml                     # テスト・ドキュメント
-├── dbt_project.yml                        # プロジェクト設定
-├── packages.yml                           # dbt依存関係
+│       ├── int_financial_ratios.sql       
+│       └── schema.yml                    
+├── dbt_project.yml                       
+├── packages.yml                          
 └── README.md
 ```
 
 ---
 
-##  データ変換パイプライン
+## Data Transformation Pipeline
 
-### 1. ステージング層: `stg_apple_financials`
+### 1. Staging Layer: `stg_apple_financials`
 
-**目的:** SEC生データのクリーニングと標準化
+**Purpose:**
+Cleaning and standardizing the raw SEC data.
 
-**変換処理:**
--  日付フォーマット変換: `20200930`（整数） → `2020-09-30`（DATE型）
--  NULL値と無効レコードの除去
--  10-Q（四半期）と10-K（年次）報告書のみに絞り込み
--  重複期間の除去（10-Qを10-Kより優先）
--  会計年度と四半期情報の抽出
+**Transformations performed:**
+- Convert date formats: `20200930` (integer) → `2020-09-30` (DATE type)
+- Remove NULL values and invalid records
+- Filter to only include quarterly and annual SEC filings (10-Q and 10-K)
+- Remove duplicated reporting periods (prioritizing 10-Q over 10-K)
+- Extract fiscal year and quarter information
 
-**重要なロジック:**
+**Key logic:**
 ```sql
--- 重複除去：期間・指標ごとに1行
+-- Deduplication: ensure one row per period and metric
 ROW_NUMBER() OVER (
     PARTITION BY period_end_date, measure_tag
     ORDER BY 
@@ -98,20 +97,21 @@ ROW_NUMBER() OVER (
 )
 ```
 
-**出力:** クリーンでユニークな期間-指標の組み合わせ160行
+**Output:** 160 clean, unique rows representing period–metric combinations.
 
 ---
 
-### 2. マート層: `fct_apple_financials`
+### 2. Marts Layer: `fct_apple_financials`
 
-**目的:** 縦持ち形式から横持ち形式への変換（ビジネス利用可能）
+**Purpose:**  
+Transform long-format financial metrics into a wide-format table suitable for business use.
 
-**変換処理:**
--  指標タグを列にピボット
--  会計期間ごとに1行
--  主要指標: 売上高、売上総利益、純利益、EPS、配当
+**Transformations performed:**
+- Pivot metric tags into columns  
+- Output one row per financial reporting period  
+- Include key metrics: revenue, gross profit, net income, EPS, dividends  
 
-**変換前（縦持ち形式）:**
+**Before (long format):**
 ```
 period_end_date | measure_tag         | value
 2020-09-30      | NetIncomeLoss      | 12,673,000,000
@@ -119,133 +119,136 @@ period_end_date | measure_tag         | value
 2020-09-30      | GrossProfit        | 24,689,000,000
 ```
 
-**変換後（横持ち形式）:**
+**After (wide format):**
 ```
 period_end_date | revenue        | gross_profit   | net_income
 2020-09-30      | 64,698,000,000 | 24,689,000,000 | 12,673,000,000
 ```
 
-**出力:** 16行（会計期間ごとに1行）
+**Output:**  
+16 rows (one per financial period)
 
 ---
 
-###  分析層: `int_financial_ratios`
+### Analytics Layer: `int_financial_ratios`
 
-**目的:** ビジネスKPIと成長指標の計算
+**Purpose:**  
+Compute business KPIs and growth indicators.
 
-**計算指標:**
--  **収益性指標:** 売上総利益率、純利益率
--  **成長率:** 連続期間比成長率
--  **前年同期比:** 4期間前との比較
--  **トレンド分析:** 4四半期移動平均
+**Calculated Metrics:**
+- **Profitability:** gross margin %, net margin %  
+- **Growth rates:** sequential growth  
+- **Year-over-year (YoY):** comparison with the same period 4 quarters prior  
+- **Trend analysis:** 4-quarter moving averages  
 
-**主要な計算式:**
+**Key formulas:**
 ```sql
--- 売上総利益率
-gross_margin_pct = (gross_profit / revenue) × 100
+-- Gross margin percentage
+gross_margin_pct = (gross_profit / revenue) * 100
 
--- 連続期間成長率
-revenue_growth_pct = ((当期売上 - 前期売上) / 前期売上) × 100
+-- Sequential growth rate
+revenue_growth_pct = ((current_revenue - previous_revenue) / previous_revenue) * 100
 
--- 前年同期比成長率
-revenue_yoy_growth_pct = ((当期売上 - 4期前売上) / 4期前売上) × 100
+-- Year-over-year growth rate
+revenue_yoy_growth_pct = ((current_revenue - revenue_4q_ago) / revenue_4q_ago) * 100
 ```
 
-**出力:** 期間ごとに20以上の計算指標を含む16行
+**Output:**  
+16 rows, each containing 20+ calculated financial KPIs.
 
 ---
 
-##  主要指標とKPI
+##  Key Metrics and KPIs
 
-### 財務指標
-- **売上高:** 期間ごとの総売上
-- **売上総利益:** 売上高から売上原価を差し引いた利益
-- **純利益:** すべての費用を差し引いた後の利益
-- **EPS（希薄化後）:** 1株当たり利益
-- **配当:** 宣言された1株当たり配当
+### Financial Metrics
+- **Revenue:** total sales per period  
+- **Gross Profit:** profit after subtracting cost of goods sold  
+- **Net Income:** profit after all expenses  
+- **EPS (diluted):** earnings per share  
+- **Dividends:** dividend declared per share  
 
-### 計算比率
-- **売上総利益率:** 製品レベルでの収益性
-- **純利益率:** 全体的な収益性
-- **売上成長率:** 連続期間の成長
-- **前年同期比成長率:** 前年との比較
-- **4Q移動平均:** 平滑化された四半期トレンド
+### Ratio & Trend Metrics
+- **Gross Margin %:** product-level profitability  
+- **Net Margin %:** overall profitability  
+- **Revenue Growth %:** sequential (period-over-period) growth  
+- **Year-over-Year (YoY) Growth %:** comparison with the same period one year earlier  
+- **4Q Moving Average:** smoothed quarterly trend across four periods  
 
 ---
 
-##  ダッシュボードのハイライト
+## Dashboard Highlights
 
-### エグゼクティブビュー
--  **スコアカード:** 最新四半期の売上高、純利益、EPS
--  **売上トレンド:** 四半期売上の折れ線グラフ（2019-2020年）
--  **利益率分析:** 売上総利益率と純利益率の推移
+### Executive View
+- **Scorecards:** latest quarter’s revenue, net income, and EPS  
+- **Revenue Trend:** quarterly revenue line chart (2019–2020)  
+- **Profitability Analysis:** trends in gross margin % and net margin %  
 
-### 成長分析
--  **連続成長:** 前期比売上成長率
--  **YoY比較:** 前年同期比成長率
--  **パフォーマンステーブル:** 全期間の詳細指標
+### Growth Analysis
+- **Sequential Growth:** quarter-over-quarter revenue growth rates  
+- **YoY Comparison:** year-over-year revenue growth  
+- **Performance Table:** detailed financial metrics across all reporting periods  
 
-**[ダッシュボードを見る →](https://lookerstudio.google.com/reporting/067044c7-111f-4560-97ff-6bb1bedee721)**
+**[Dashboard →](https://lookerstudio.google.com/reporting/067044c7-111f-4560-97ff-6bb1bedee721)**
 ---
 
-##  セットアップ方法
+##  Setup Instructions
 
-### 前提条件
-- BigQueryが有効化されたGoogle Cloud Platformアカウント
-- dbt Cloudアカウント（またはdbt Core 1.0以上）
-- BigQuery内のSEC財務データへのアクセス権
+### Prerequisites
+- Google Cloud account with BigQuery enabled  
+- dbt Cloud account (or dbt Core 1.0+)  
+- Access to SEC dataset in BigQuery  
 
-### インストール
+### Installation
 
-1. **リポジトリのクローン**
+Clone the repository:
 ```bash
 git clone https://github.com/wendyyng/financials_dbt.git
 cd financials_dbt
 ```
 
-2. **dbtパッケージのインストール**
+2. **Install dbt packages**
 ```bash
 dbt deps
 ```
 
-3. **BigQuery接続の設定**
-   - dbt Cloudまたは`profiles.yml`で接続を設定
-   - ソースデータセットへのアクセス権を確認
+3. **Set up the BigQuery connection**
+   - Configure the connection in dbt Cloud or in `profiles.yml`
+   - Verify access permissions to the source dataset
 
-4. **パイプラインの実行**
+4. **Run the pipeline**
 ```bash
-# 全モデルの実行
+# Run all models
 dbt run
 
-# テストの実行
+# Run tests
 dbt test
 
-# ドキュメント生成
+# Generate documentation
 dbt docs generate
 ```
 
 ---
 
-##  データ品質とテスト
+##  Data Quality and Testing
 
-### 実装済みテスト
--  **Not Null:** 重要フィールドに必ず値があることを確認
--  **ユニーク組み合わせ:** 期間レコードの重複がないことを検証
--  **参照整合性:** 適切なデータ系統を確認
+### Implemented Tests
+-  **Not Null:** Ensures required fields contain valid values
+-  **Unique combinations:** Ensures reporting periods are not duplicated
+-  **Referential integrity:** Validates correct lineage and model dependencies
 
-### テスト結果
+### Test Results
 ```bash
 $ dbt test
 Done. PASS=5 WARN=0 ERROR=0 SKIP=0 TOTAL=5
 ```
 
-**全テスト合格 **
+**All tests passed **
 
 ---
 
-##  サンプルクエリ
+##  Sample Queries
 
-### クエリ1: 最新四半期のパフォーマンス
+### Query 1: Latest Quarterly Performance
 ```sql
 SELECT 
   period_end_date,
@@ -258,7 +261,7 @@ ORDER BY period_end_date DESC
 LIMIT 1;
 ```
 
-### クエリ2: 前年同期比成長率
+### Query 2: Year-over-Year Growth Rate
 ```sql
 SELECT 
   period_end_date,
@@ -272,57 +275,56 @@ ORDER BY period_end_date DESC;
 
 ---
 
-##  実証されたスキル
+##  Demonstrated Skills
 
-### 技術スキル
-- **SQL:** 複雑な変換、ウィンドウ関数、CTE、ピボット処理
-- **データモデリング:** ディメンショナルモデリング、ファクト/ディメンションテーブル
-- **BigQuery:** データウェアハウジング、クエリ最適化、パーティショニング
-- **dbt:** メダリオンアーキテクチャ、テストフレームワーク、ドキュメント、Jinjaテンプレート
-- **データ品質:** 重複除去戦略、検証、データ整合性テスト
+### Technical Skills
+- **SQL:** complex transformations, window functions, CTEs, pivoting
+- **Data Modeling:** dimensional modeling, fact/dimension structures
+- **BigQuery:** warehousing, query optimization, partitioning
+- **dbt:** medallion architecture, testing framework, documentation, Jinja templating
+- **Data Quality:** deduplication strategies, validation, integrity checks
 
-### ビジネススキル
-- **財務分析:** 財務諸表とSEC提出書類の理解
-- **KPI開発:** 意味のあるビジネス指標の作成
-- **データストーリーテリング:** データを実行可能なインサイトに変換
+### Business Skills
+- **Financial Analysis:** understanding SEC filings and financial statements
+- **KPI Development:** designing meaningful business metrics
+- **Data Storytelling:** converting data into actionable insights
 
-### エンジニアリング実践
-- **バージョン管理:** Gitワークフロー、意味のあるコミット、ドキュメント
-- **テスト:** 包括的なデータ品質チェック
-- **ドキュメント:** 自己文書化コード、README、インラインコメント
-
----
-
-##  主な学びと課題
-
-### 解決した課題
-1. **重複する期間:** SEC提出書類には比較用の過去データが含まれるため、スマートな重複除去が必要
-2. **複数の提出タイプ:** 10-Qと10-K報告書はデータ構造が異なる
-3. **データフォーマットの不一致:** 様々な日付フォーマットとNULL値への対応
-4. **指標計算:** 成長率のための適切なウィンドウ関数の実装
-
-### 実装したベストプラクティス
--  3層アーキテクチャ（ステージング → マート → 分析）
--  各層での包括的なテスト
--  明確なドキュメントとコードコメント
--  べき等な変換処理
--  ダッシュボードパフォーマンス向上のための事前計算指標
+### Engineering Practices
+- **Version Control:** Git workflows, meaningful commits, documentation
+- **Testing:** comprehensive data quality checks
+- **Documentation:** self-documenting code, README, inline comments
 
 ---
 
-##  成果と影響
+##  Key Learnings and Challenges
 
--  **16四半期**のクリーンで分析可能な財務データ
--  **100%のテスト合格率**（5つのデータ品質テスト）
--  重複除去ロジック後の**重複レコードゼロ**
--  dbtによる**自動化されたデータ系統**ドキュメント
+### Challenges Addressed
+1. **Duplicate reporting periods:** SEC filings include historical comparisons, requiring intelligent deduplication
+2. **Multiple filing formats:** variations in financial statements required structural normalization
+3. **Inconsistent formats:** handling mixed date formats and NULL values
+4. **Metric calculations:** implementing correct window functions for growth metrics
 
+### Best Practices Implemented
+-  Three-layer architecture (Staging → Marts → Analytics)
+-  Layer-specific testing for data quality
+-  Clear documentation and code comments
+-  Idempotent transformation logic
+-  Precomputed metrics to improve dashboard performance
+  
 ---
 
-##  関連リンク
+##  Results and Impact
 
-- **ダッシュボード:** [Looker Studioダッシュボードを見る](https://lookerstudio.google.com/reporting/067044c7-111f-4560-97ff-6bb1bedee721)
-- **dbtドキュメント:** [ドキュメントを見る](https://wendyyng.github.io/financials_dbt/#!/overview)
-- **ソースデータ:** [SEC EDGARデータベース](https://www.sec.gov/edgar)
+-  **16 quarters** of clean, analysis-ready financial data
+-  **100% dbt test pass rate**across 5 data quality tests
+-  **Zero duplicated records** after applying deduplication logic
+-  **Automated lineage documentation** generated through dbt
+---
+
+##  Links
+
+- **Dashboard:** [Looker Studio](https://lookerstudio.google.com/reporting/067044c7-111f-4560-97ff-6bb1bedee721)
+- **dbt Docs:** [View Documentation](https://wendyyng.github.io/financials_dbt/#!/overview)
+- **Source Data:** [SEC EDGAR Database](https://www.sec.gov/edgar)
 
 ---
